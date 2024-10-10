@@ -1,0 +1,45 @@
+# Ignore build outputs
+bin/
+obj/
+
+# Ignore Visual Studio temporary files, build results, and
+# user-specific files
+.vscode/
+.vs/
+.vscode/*
+.vscode/*/*
+.vscode/*/*/*
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider IDE files
+.idea/
+*.sln.iml
+
+# Mac-specific files
+.DS_Store
+
+# Ignore files related to the ASP.NET and Razor compilation
+debug/
+logs/
+Generated/
+Properties/launchSettings.json
+
+# Ignore the build output directory
+wwwroot/css/
+wwwroot/js/
+wwwroot/lib/
+wwwroot/dist/
+
+# Ignore dependency lock files (Node.js, NPM, etc.)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ignore Publish files
+publish/
+PublishScripts/
+Project_Readme.html

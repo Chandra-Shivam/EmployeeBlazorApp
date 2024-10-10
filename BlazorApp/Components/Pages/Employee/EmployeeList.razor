@@ -1,0 +1,140 @@
+﻿@page "/employeeList"
+
+@rendermode InteractiveServer
+@inject NavigationManager Navigate
+@inject MessageService MessageService
+@inject IJSRuntime JS
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Text
+
+@if (!string.IsNullOrEmpty(MessageService.SuccessMessage))
+{
+    <div class="alert alert-success">@MessageService.SuccessMessage</div>
+}
+<div class="mb-3">
+    <h3>List Of Employee's</h3>
+</div>
+
+<div class="mb-2" style="float: right;">
+    <div style="display: inline-block;">
+        <InputText type="text" class="form-control" placeholder="Search by Name, Department, or Position"
+            @bind-Value="searchTerm" @oninput="OnSearchTermChanged" />
+    </div>
+    <div style="display: inline-block;">
+
+        <button class="btn btn-primary" @onclick="ExportToCsv">Export To CSV</button>
+    </div>
+</div>
+
+<div>
+    <QuickGrid Items="filteredEmployees.AsQueryable()" Pagination="paginationState" class="table table-bordered">
+        <PropertyColumn Property="c => c.FullName" Title="Name" Sortable="true"></PropertyColumn>
+        <PropertyColumn Property="c => c.Position" Title="Position" Sortable="true"></PropertyColumn>
+        <PropertyColumn Property="c => c.Department" Title="Department" Sortable="true"></PropertyColumn>
+        <PropertyColumn Property="c => c.DateOfJoining" Title="Joining Date" Sortable="true" Format="dd/MMM/yyyy">
+        </PropertyColumn>
+        <PropertyColumn Property="c => c.EmailAddress" Title="Email" Sortable="true"></PropertyColumn>
+        <TemplateColumn Title="Edit">
+            <a href="/editEmployee/@context.EmployeeId" class="nav-link">Edit</a>
+        </TemplateColumn>
+        <TemplateColumn Title="Delete">
+            <button class="btn btn-danger" @onclick="() => Delete(context)">Delete</button>
+        </TemplateColumn>
+        <TemplateColumn Title="Badge">
+            @if (IsRecentJoinee(context.DateOfJoining))
+            {
+                <span class="badge bg-success">New!</span>
+            }
+        </TemplateColumn>
+    </QuickGrid>
+
+    <Paginator State="@paginationState"></Paginator>
+
+    <a href="/AddEmployee" class="btn btn-primary">Add Employee</a>
+</div>
+
+<script>
+    window.downloadFile = (filename, content) => {
+        const blob = new Blob([content], { type: 'text/csv' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(link.href);
+    };
+</script>
+
+@code {
+    private List<Employee> employeeList = new List<Employee>();
+    private List<Employee> filteredEmployees = new List<Employee>();
+    private string searchTerm = string.Empty;
+
+    [Inject]
+    private IRepository repo { get; set; }
+    PaginationState paginationState = new PaginationState { ItemsPerPage = 15 };
+    protected override async Task OnInitializedAsync()
+    {
+        await FetchEmployeeList();
+    }
+    private async Task FetchEmployeeList()
+    {
+        employeeList = await repo.FetchEmployeeList();
+        filteredEmployees = employeeList;
+    }
+    private bool IsRecentJoinee(DateTime joiningDate)
+    {
+        return (DateTime.Now - joiningDate).TotalDays <= 30;
+    }
+    private async void Delete(Employee employee)
+    {
+        string message = string.Format("{0} - {1}?", "Are you sure", employee.FullName);
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", message);
+        if (confirmed)
+        {
+            await repo.RemoveEmployee(employee.EmployeeId);
+            Navigate.NavigateTo(Navigate.Uri, true);
+        }
+        MessageService.SetSuccessMessage("Deleted Successfully");
+
+    }
+    private void ExportToCsv()
+    {
+        var csv = GenerateCSV(employeeList);
+        JS.InvokeVoidAsync("downloadFile", "employees.csv", csv);
+    }
+    private string GenerateCSV(List<Employee> employees)
+    {
+        var csv = new StringBuilder();
+        csv.AppendLine("Id,FullName,Position,Department,Email,DateOfJoining");
+
+        foreach (var employee in employees)
+        {
+            csv.AppendLine($"{employee.EmployeeId},{employee.FullName},{employee.Position},{employee.Department},{employee.EmailAddress},{employee.DateOfJoining:yyyy-MM-dd}");
+        }
+
+        return csv.ToString();
+    }
+
+    private void OnSearchTermChanged(ChangeEventArgs e)
+    {
+        searchTerm = e.Value.ToString();
+        FilterEmployees();
+    }
+    private void FilterEmployees()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            filteredEmployees = employeeList;
+        }
+        else
+        {
+            filteredEmployees = employeeList
+            .Where(e => e.FullName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+            e.Department.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+            e.Position.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+            e.EmailAddress.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        }
+    }
+}

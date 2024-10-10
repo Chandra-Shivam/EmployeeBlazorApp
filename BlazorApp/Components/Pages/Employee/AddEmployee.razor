@@ -1,0 +1,66 @@
+﻿@page "/addEmployee"
+@inject NavigationManager Navigation
+@inject MessageService MessageService
+
+<h3>Add Employee</h3>
+
+<EditForm Model="employee" OnValidSubmit="AddNewEmployee" FormName="AddEmployeeForm">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="row mb-3">
+        <div class="mb-3">
+            <label class="form-label">Full Name</label>
+            <InputText @bind-Value="employee.FullName" class="form-control"></InputText>
+            <ValidationMessage For="@(() => employee.FullName)"></ValidationMessage>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Position</label>
+            <InputText @bind-Value="employee.Position" class="form-control"></InputText>
+            <ValidationMessage For="@(() => employee.Position)"></ValidationMessage>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Department</label>
+            <InputText @bind-Value="employee.Department" class="form-control"></InputText>
+            <ValidationMessage For="@(() => employee.Department)"></ValidationMessage>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Email Address</label>
+            <InputText @bind-Value="employee.EmailAddress" class="form-control" placeholder="name@example.com">
+            </InputText>
+            <ValidationMessage For="@(() => employee.EmailAddress)"></ValidationMessage>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Joining Date</label>
+            <InputDate @bind-Value="employee.DateOfJoining" @attributes="dateInputAttributes" class="form-control">
+            </InputDate>
+            <ValidationMessage For="@(() => employee.DateOfJoining)"></ValidationMessage>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+    <a href="/employeeList" class="btn btn-danger">Cancel</a>
+
+</EditForm>
+
+
+@code {
+    [SupplyParameterFromForm(FormName = "AddEmployeeForm")]
+    private Employee employee { get; set; } = new Employee();
+    [Inject]
+    public IRepository repo { get; set; }
+    private string GetCurrentDate() => DateTime.Now.ToString("yyyy-MM-dd");
+    private Dictionary<string, object> dateInputAttributes => new Dictionary<string, object>
+{
+{ "max", GetCurrentDate() },
+{ "min", DateTime.Now.AddYears(-10).ToString("yyyy-MM-dd") },
+};
+
+    private async Task AddNewEmployee()
+    {
+        var result = await repo.AddEmployee(employee);
+        if (result > 0)
+        {
+            MessageService.SetSuccessMessage("Employee Added Successfully");
+            Navigation.NavigateTo("/employeeList", true);
+        }
+    }
+}

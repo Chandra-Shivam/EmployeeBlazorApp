@@ -1,0 +1,59 @@
+﻿@page "/editEmployee/{id:int}"
+@rendermode InteractiveServer
+
+@inject NavigationManager Navigation
+@inject MessageService MessageService
+
+<h3>Edit Employee</h3>
+@if (employee != null)
+{
+    <EditForm Model="@employee" FormName="EditForm" OnSubmit="SubmitForm">
+    <InputNumber @bind-Value="employee.EmployeeId" hidden></InputNumber>
+    <div class="row mb-3">
+        <div class="mb-3">
+            <label class="form-label">Full Name</label>
+            <InputText @bind-Value="employee.FullName" class="form-control"></InputText>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Position</label>
+            <InputText @bind-Value="employee.Position" class="form-control"></InputText>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Department</label>
+            <InputText @bind-Value="employee.Department" class="form-control"></InputText>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Email Address</label>
+            <InputText @bind-Value="employee.EmailAddress" class="form-control" placeholder="name@example.com">
+            </InputText>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Joining Date</label>
+            <InputDate @bind-Value="employee.DateOfJoining" class="form-control"></InputDate>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+    <a href="/employeeList" class="btn btn-danger">Cancel</a>
+</EditForm>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+    private Employee employee = new Employee();
+
+    [Inject]
+    private IRepository repo { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        employee = await repo.EmployeeDetails(this.Id);
+    }
+
+    private void SubmitForm()
+    {
+        repo.UpdateDetails(employee);
+        MessageService.SetSuccessMessage("Updated Successfully");
+        Navigation.NavigateTo("/employeeList");
+
+    }
+}

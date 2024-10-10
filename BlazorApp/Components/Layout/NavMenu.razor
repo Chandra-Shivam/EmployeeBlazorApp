@@ -1,0 +1,44 @@
+﻿@rendermode InteractiveServer
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">BlazorApp</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" @onclick="()=>expandSubNav = !expandSubNav">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span>Employee
+            </NavLink>
+            @if (expandSubNav)
+            {
+                <ul>
+                    <li>
+                        <NavLink class="nav-link" href="addEmployee">
+                            Add Employee
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink class="nav-link" href="employeeList">
+                            List
+                        </NavLink>
+                    </li>
+                </ul>
+            }
+        </div>
+    </nav>
+</div>
+
+@code {
+    private bool expandSubNav;
+}
