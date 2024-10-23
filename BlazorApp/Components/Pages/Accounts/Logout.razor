@@ -1,0 +1,15 @@
+﻿@page "/logout"
+
+@using Microsoft.AspNetCore.Identity
+
+@inject SignInManager<IdentityUser> SignInManager
+@inject NavigationManager NavigationManager
+
+@code {
+    protected async override Task OnInitializedAsync()
+    {
+        await SignInManager.SignOutAsync();
+        NavigationManager.NavigateTo("/employeeList", forceLoad: true);
+    }
+
+}

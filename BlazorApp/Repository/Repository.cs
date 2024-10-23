@@ -32,7 +32,15 @@ public class Repository : IRepository
 
     public async Task<List<Employee>> FetchEmployeeList()
     {
-        return await _context.Employees.ToListAsync();
+        var employeeList = await _context.Employees.ToListAsync();
+        if (employeeList != null)
+        {
+            return employeeList;
+        }
+        else
+        {
+            return null;
+        }
     }
 
     public async Task RemoveEmployee(int employeeId)

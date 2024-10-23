@@ -1,0 +1,76 @@
+﻿@page "/login"
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.EntityFrameworkCore
+
+@inject MessageService MessageService
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
+
+@inject NavigationManager NavigationManager
+
+<h3>Login</h3>
+<br />
+
+@if (!string.IsNullOrEmpty(MessageService.SuccessMessage))
+{
+    <div class="alert alert-success">@MessageService.SuccessMessage</div>
+}
+@if (!string.IsNullOrEmpty(MessageService.ErrorMessage))
+{
+    <div class="alert alert-danger">@MessageService.ErrorMessage</div>
+}
+
+<EditForm Model="loginModel" FormName="LoginForm" OnValidSubmit="HandleLogin">
+    <div class="row">
+        <div class="mb-3">
+            <label class="form-label">Email Id</label>
+            <InputText @bind-Value="loginModel.EmailId" class="form-control" placeholder="name@gmail.com"></InputText>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Password</label>
+            <InputText type="Password" @bind-Value="loginModel.Password" class="form-control"></InputText>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary">Login</button>
+</EditForm>
+
+@code {
+    private string returnUrl;
+
+    [SupplyParameterFromForm(FormName = "LoginForm")]
+    private LoginModel loginModel { get; set; } = new LoginModel();
+
+    protected override void OnInitialized()
+    {
+        // Get the returnUrl from the query string
+        var uri = new Uri(NavigationManager.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        returnUrl = query["ReturnUrl"] ?? "/";
+    }
+
+    private async Task HandleLogin()
+    {
+        if (loginModel != null)
+        {
+            var normalizedEmail = UserManager.NormalizeEmail(loginModel.EmailId);
+            var user = await UserManager.Users.FirstOrDefaultAsync(x => x.Email == normalizedEmail);
+            if (user != null)
+            {
+                var signIn = await SignInManager.PasswordSignInAsync(user.UserName, loginModel.Password, false, false);
+                if (signIn.Succeeded)
+                {
+                    NavigationManager.NavigateTo(returnUrl);
+                }
+                else
+                {
+                    MessageService.SetErrorMessage("Error while logging in.");
+                }
+            }
+            else
+            {
+                MessageService.SetErrorMessage("Could not find the user, please check id and password");
+            }
+        }
+    }
+}

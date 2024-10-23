@@ -1,13 +1,35 @@
 ﻿@page "/addEmployee"
+@using Microsoft.AspNetCore.Authorization
+
+@rendermode InteractiveServer
+
+@inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
 @inject MessageService MessageService
 
-<h3>Add Employee</h3>
+@attribute [Authorize(Roles = "Admin")]
 
+<h3>Add Employee</h3>
+<br />
 <EditForm Model="employee" OnValidSubmit="AddNewEmployee" FormName="AddEmployeeForm">
     <DataAnnotationsValidator />
     <ValidationSummary />
     <div class="row mb-3">
+        <div class="mb-3">
+            <div class="form-group">
+                <label for="profilePicture">Profile Picture:</label>
+                <InputFile OnChange="OnProfilePictureSelected" />
+            </div>
+
+            <!-- Preview of Uploaded Image (Optional) -->
+            @if (!string.IsNullOrEmpty(profilePictureUrl))
+            {
+                <div>
+                    <img src="@profilePictureUrl" alt="Profile Picture"
+                        style="width: 100px; height: 100px; border: 1px solid;" />
+                </div>
+            }
+        </div>
         <div class="mb-3">
             <label class="form-label">Full Name</label>
             <InputText @bind-Value="employee.FullName" class="form-control"></InputText>
@@ -35,6 +57,12 @@
             </InputDate>
             <ValidationMessage For="@(() => employee.DateOfJoining)"></ValidationMessage>
         </div>
+        <div class="mb-3">
+            <label class="form-label">Phone</label>
+            <InputNumber @bind-Value="employee.PhoneNumber" class="form-control"
+                placeholder="enter 10 digits phone number"></InputNumber>
+            <ValidationMessage For="@(() => employee.PhoneNumber)"></ValidationMessage>
+        </div>
     </div>
     <button type="submit" class="btn btn-primary">Submit</button>
     <a href="/employeeList" class="btn btn-danger">Cancel</a>
@@ -48,6 +76,9 @@
     [Inject]
     public IRepository repo { get; set; }
     private string GetCurrentDate() => DateTime.Now.ToString("yyyy-MM-dd");
+    private IBrowserFile? profilePictureFile;
+    private string? profilePictureUrl;
+    private byte[]? profilePictureData;
     private Dictionary<string, object> dateInputAttributes => new Dictionary<string, object>
 {
 { "max", GetCurrentDate() },
@@ -56,11 +87,43 @@
 
     private async Task AddNewEmployee()
     {
+        if (profilePictureData != null)
+        {
+            employee.ProfilePicture = profilePictureData;
+        }
         var result = await repo.AddEmployee(employee);
         if (result > 0)
         {
             MessageService.SetSuccessMessage("Employee Added Successfully");
             Navigation.NavigateTo("/employeeList", true);
+        }
+    }
+    private async Task OnProfilePictureSelected(InputFileChangeEventArgs e)
+    {
+        profilePictureFile = e.File;
+        // Only allow image files
+        if (e.File.ContentType.StartsWith("image/"))
+        {
+            // Limit file size (optional), e.g., max 1MB
+            const long maxFileSize = 2 * 1024 * 1024; // 1 MB
+            if (profilePictureFile.Size > maxFileSize)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "File size is too large. Max allowed size is 2MB.");
+                return;
+            }
+
+            // Use MemoryStream to ensure the image is fully loaded
+            using var memoryStream = new MemoryStream();
+            await profilePictureFile.OpenReadStream(maxFileSize).CopyToAsync(memoryStream);
+
+            // Convert image data to base64 string for preview
+            profilePictureData = memoryStream.ToArray();
+            @* var buffer = memoryStream.ToArray(); // Convert stream to byte array *@
+            profilePictureUrl = $"data:{profilePictureFile.ContentType};base64,{Convert.ToBase64String(profilePictureData)}";
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Please upload a valid image file.");
         }
     }
 }

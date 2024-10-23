@@ -5,6 +5,8 @@
 @inject MessageService MessageService
 @inject IJSRuntime JS
 
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using System.Text
 
@@ -28,28 +30,50 @@
 </div>
 
 <div>
-    <QuickGrid Items="filteredEmployees.AsQueryable()" Pagination="paginationState" class="table table-bordered">
-        <PropertyColumn Property="c => c.FullName" Title="Name" Sortable="true"></PropertyColumn>
-        <PropertyColumn Property="c => c.Position" Title="Position" Sortable="true"></PropertyColumn>
-        <PropertyColumn Property="c => c.Department" Title="Department" Sortable="true"></PropertyColumn>
-        <PropertyColumn Property="c => c.DateOfJoining" Title="Joining Date" Sortable="true" Format="dd/MMM/yyyy">
-        </PropertyColumn>
-        <PropertyColumn Property="c => c.EmailAddress" Title="Email" Sortable="true"></PropertyColumn>
+    @if (filteredEmployees != null)
+    {
+        <QuickGrid Items="filteredEmployees.AsQueryable()" Pagination="paginationState" class="table table-bordered">
+            <PropertyColumn Property="c => c.FullName" Title="Name" Sortable="true"></PropertyColumn>
+            <PropertyColumn Property="c => c.Position" Title="Position" Sortable="true"></PropertyColumn>
+            <PropertyColumn Property="c => c.Department" Title="Department" Sortable="true"></PropertyColumn>
+            <PropertyColumn Property="c => c.DateOfJoining" Title="Joining Date" Sortable="true" Format="dd/MMM/yyyy">
+            </PropertyColumn>
+            <PropertyColumn Property="c => c.EmailAddress" Title="Email" Sortable="true"></PropertyColumn>
+            <PropertyColumn Property="c => c.IsActive" Title="Is Active" Sortable="true"></PropertyColumn>
+            <AuthorizeView Roles="Admin" Context="AdminContextEmployeeList">
+                <Authorized>
+                    <TemplateColumn Title="Edit">
+                        <a href="/editEmployee/@context.EmployeeId" class="nav-link">Edit</a>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Delete">
+                        <button class="btn btn-danger" @onclick="() => Delete(context)">Delete</button>
+                    </TemplateColumn>
+                </Authorized>
+            </AuthorizeView>
+            @* @if (isAdmin)
+        {
         <TemplateColumn Title="Edit">
-            <a href="/editEmployee/@context.EmployeeId" class="nav-link">Edit</a>
+        <a href="/editEmployee/@context.EmployeeId" class="nav-link">Edit</a>
         </TemplateColumn>
         <TemplateColumn Title="Delete">
-            <button class="btn btn-danger" @onclick="() => Delete(context)">Delete</button>
+        <button class="btn btn-danger" @onclick="() => Delete(context)">Delete</button>
         </TemplateColumn>
-        <TemplateColumn Title="Badge">
-            @if (IsRecentJoinee(context.DateOfJoining))
-            {
-                <span class="badge bg-success">New!</span>
-            }
-        </TemplateColumn>
-    </QuickGrid>
 
-    <Paginator State="@paginationState"></Paginator>
+        } *@
+            <TemplateColumn Title="Badge">
+                @if (IsRecentJoinee(context.DateOfJoining))
+                {
+                    <span class="badge bg-success">New!</span>
+                }
+            </TemplateColumn>
+        </QuickGrid>
+
+        <Paginator State="@paginationState"></Paginator>
+    }
+    else
+    {
+        <span>No employee found!</span>
+    }
 
     <a href="/AddEmployee" class="btn btn-primary">Add Employee</a>
 </div>
@@ -69,12 +93,19 @@
     private List<Employee> employeeList = new List<Employee>();
     private List<Employee> filteredEmployees = new List<Employee>();
     private string searchTerm = string.Empty;
-
+    private bool isAdmin;
     [Inject]
     private IRepository repo { get; set; }
     PaginationState paginationState = new PaginationState { ItemsPerPage = 15 };
+
+    [CascadingParameter]
+    public Task<AuthenticationState> AuthenticationStateTask { get; set; }
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthenticationStateTask;
+        var user = authState.User;
+        isAdmin = user.IsInRole("Admin");
+
         await FetchEmployeeList();
     }
     private async Task FetchEmployeeList()
@@ -86,6 +117,7 @@
     {
         return (DateTime.Now - joiningDate).TotalDays <= 30;
     }
+
     private async void Delete(Employee employee)
     {
         string message = string.Format("{0} - {1}?", "Are you sure", employee.FullName);

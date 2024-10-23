@@ -1,0 +1,60 @@
+﻿@page "/register"
+@using Microsoft.AspNetCore.Identity
+
+@inject UserManager<IdentityUser> UserManager
+@inject NavigationManager NavigationManager
+@inject MessageService MessageService
+
+<h3>Register</h3>
+<br />
+@if (!string.IsNullOrEmpty(MessageService.ErrorMessage))
+{
+    <div class="alert alert-danger">@MessageService.ErrorMessage</div>
+}
+<EditForm Model="registerModel" FormName="RegisterForm" OnValidSubmit="HandleRegistration">
+    <div class="row">
+        <div class="mb-3">
+            <label class="form-label">Email Id</label>
+            <InputText @bind-Value="registerModel.EmailId" class="form-control" placeholder="name@gmail.com">
+            </InputText>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Password</label>
+            <InputText type="Password" @bind-Value="registerModel.Password" class="form-control"></InputText>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+</EditForm>
+
+@code {
+    [SupplyParameterFromForm]
+    private RegisterModel registerModel { get; set; } = new RegisterModel();
+
+    private async Task HandleRegistration()
+    {
+        if (registerModel != null)
+        {
+            var user = new IdentityUser
+                {
+                    UserName = registerModel.EmailId,
+                    Email = registerModel.EmailId
+                };
+
+            var userResult = await UserManager.CreateAsync(user, registerModel.Password);
+            if (userResult.Succeeded)
+            {
+                var userRole = await UserManager.AddToRoleAsync(user, "User");
+                if (userRole.Succeeded)
+                {
+                    MessageService.SetSuccessMessage("Employee Registered Successfully");
+
+                    NavigationManager.NavigateTo("/login");
+                }
+            }
+            else
+            {
+                MessageService.SetErrorMessage("Error while registering the user.");
+            }
+        }
+    }
+}

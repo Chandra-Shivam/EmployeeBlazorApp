@@ -1,13 +1,17 @@
 ﻿@page "/editEmployee/{id:int}"
+@using Microsoft.AspNetCore.Authorization
 @rendermode InteractiveServer
 
 @inject NavigationManager Navigation
 @inject MessageService MessageService
+@attribute [Authorize(Roles = "Admin")]
 
 <h3>Edit Employee</h3>
+<br />
+
 @if (employee != null)
 {
-    <EditForm Model="@employee" FormName="EditForm" OnSubmit="SubmitForm">
+    <EditForm Model="@employee" FormName="EditForm" OnValidSubmit="SubmitForm">
     <InputNumber @bind-Value="employee.EmployeeId" hidden></InputNumber>
     <div class="row mb-3">
         <div class="mb-3">

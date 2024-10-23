@@ -3,6 +3,7 @@ using BlazorApp.Data;
 using BlazorApp.Interfaces;
 using BlazorApp.Models;
 using BlazorApp.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,9 +15,28 @@ builder.Services.AddRazorComponents()
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SQLConnectionString")));
 
+builder.Services.AddDbContextFactory<AccountDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("AccountConnectionString")));
+
+builder.Services.AddServerSideBlazor()
+    .AddCircuitOptions(options => { options.DetailedErrors = true; });
+
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddIdentity<IdentityUser, IdentityRole>().AddEntityFrameworkStores<AccountDbContext>();
+
 builder.Services.AddScoped<IRepository, Repository>();
 
+
 builder.Services.AddSingleton<MessageService>();
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/login";  // Ensure this is set to your desired login path
+    options.AccessDeniedPath = "/access-denied";  // Optional
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+    options.SlidingExpiration = true;
+});
+
 
 var app = builder.Build();
 
@@ -31,6 +51,11 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();
+
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
